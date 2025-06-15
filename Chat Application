@@ -1,0 +1,51 @@
+import socket
+
+def run_server():
+    server = socket.socket()
+    server.bind(('localhost', 12345))
+    server.listen(1)
+    print("🟢 Server is running. Waiting for client...")
+
+    conn, addr = server.accept()
+    print("✅ Client connected from:", addr)
+
+    while True:
+        msg = conn.recv(1024).decode()
+        if msg.lower() == 'bye':
+            print("❌ Client disconnected.")
+            break
+        print("Client:", msg)
+
+        reply = input("You: ")
+        conn.send(reply.encode())
+
+    conn.close()
+    server.close()
+
+def run_client():
+    client = socket.socket()
+    client.connect(('localhost', 12345))
+    print("✅ Connected to server!")
+
+    while True:
+        message = input("You: ")
+        client.send(message.encode())
+
+        if message.lower() == 'bye':
+            print("❌ Disconnected from server.")
+            break
+
+        reply = client.recv(1024).decode()
+        print("Server:", reply)
+
+    client.close()
+
+# ---------- Main Program ----------
+mode = input("Enter mode (server/client): ").strip().lower()
+
+if mode == 'server':
+    run_server()
+elif mode == 'client':
+    run_client()
+else:
+    print("❌ Invalid mode. Please enter 'server' or 'client'.")
