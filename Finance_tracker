@@ -1,0 +1,175 @@
+import tkinter as tk
+from tkinter import ttk, messagebox
+import csv
+from datetime import datetime
+import matplotlib.pyplot as plt
+import pandas as pd
+import os
+
+FILENAME = 'data.csv'
+
+# Ensure CSV has correct header
+def initialize_csv():
+    if not os.path.isfile(FILENAME):
+        with open(FILENAME, 'w', newline='') as file:
+            writer = csv.writer(file)
+            writer.writerow(['Date', 'Category', 'Type', 'Amount', 'Note'])
+
+# Add transaction to CSV
+def add_transaction():
+    date = date_entry.get() or datetime.today().strftime('%Y-%m-%d')
+    category = category_entry.get()
+    type_ = type_var.get()
+    amount = amount_entry.get()
+    note = note_entry.get()
+
+    if not category or not type_ or not amount:
+        messagebox.showerror("Error", "Please fill in all required fields.")
+        return
+
+    try:
+        datetime.strptime(date, '%Y-%m-%d')
+    except ValueError:
+        messagebox.showerror("Error", "Invalid date format. Use YYYY-MM-DD.")
+        return
+
+    try:
+        amount = float(amount)
+    except ValueError:
+        messagebox.showerror("Error", "Amount must be a number.")
+        return
+
+    with open(FILENAME, 'a', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerow([date, category, type_, amount, note])
+
+    messagebox.showinfo("Success", "Transaction added successfully!")
+    clear_fields()
+    load_transactions()
+
+# Clear input fields
+def clear_fields():
+    date_entry.delete(0, tk.END)
+    date_entry.insert(0, datetime.today().strftime('%Y-%m-%d'))
+    category_entry.delete(0, tk.END)
+    amount_entry.delete(0, tk.END)
+    note_entry.delete(0, tk.END)
+    type_var.set("Expense")
+
+# Load transactions into Treeview
+def load_transactions():
+    for row in tree.get_children():
+        tree.delete(row)
+
+    try:
+        with open(FILENAME, 'r') as file:
+            reader = csv.DictReader(file, skipinitialspace=True)  # Fix: trims spaces in headers
+            for row in reader:
+                if all(key in row for key in ['Date', 'Category', 'Type', 'Amount', 'Note']):
+                    tree.insert('', tk.END, values=(row['Date'], row['Category'], row['Type'], row['Amount'], row['Note']))
+                else:
+                    messagebox.showerror("Error", "CSV headers are incorrect or missing.")
+                    break
+    except FileNotFoundError:
+        pass
+
+# Show summary of income/expense
+def show_summary():
+    income, expense = 0, 0
+
+    try:
+        with open(FILENAME, 'r') as file:
+            reader = csv.DictReader(file, skipinitialspace=True)
+            for row in reader:
+                amt = float(row['Amount'])
+                if row['Type'] == 'Income':
+                    income += amt
+                elif row['Type'] == 'Expense':
+                    expense += amt
+    except Exception as e:
+        messagebox.showerror("Error", f"Summary error: {e}")
+        return
+
+    balance = income - expense
+    messagebox.showinfo("Summary", f"Total Income: ₹{income}\nTotal Expense: ₹{expense}\nBalance: ₹{balance}")
+
+# Show pie chart using matplotlib
+def show_pie_chart():
+    try:
+        df = pd.read_csv(FILENAME, skipinitialspace=True)
+        income = df[df['Type'] == 'Income']['Amount'].astype(float).sum()
+        expense = df[df['Type'] == 'Expense']['Amount'].astype(float).sum()
+    except Exception as e:
+        messagebox.showerror("Error", f"Failed to read CSV: {e}")
+        return
+
+    if income == 0 and expense == 0:
+        messagebox.showinfo("Info", "No data to display in chart.")
+        return
+
+    labels = ['Income', 'Expense']
+    values = [income, expense]
+    colors = ['#4CAF50', '#F44336']
+
+    plt.figure(figsize=(5, 5))
+    plt.pie(values, labels=labels, autopct='%1.1f%%', colors=colors, startangle=140)
+    plt.title("Income vs Expense")
+    plt.axis('equal')
+    plt.tight_layout()
+    plt.show()
+
+# ---------- GUI START ----------
+initialize_csv()
+
+root = tk.Tk()
+root.title("💰 Personal Finance Tracker")
+root.geometry("800x600")
+root.resizable(False, False)
+
+# ---- Input Form ----
+frame = tk.Frame(root, padx=10, pady=10)
+frame.pack(pady=10)
+
+tk.Label(frame, text="Date (YYYY-MM-DD):").grid(row=0, column=0, sticky='e')
+date_entry = tk.Entry(frame)
+date_entry.grid(row=0, column=1)
+date_entry.insert(0, datetime.today().strftime('%Y-%m-%d'))
+
+tk.Label(frame, text="Category:").grid(row=1, column=0, sticky='e')
+category_entry = tk.Entry(frame)
+category_entry.grid(row=1, column=1)
+
+tk.Label(frame, text="Type:").grid(row=2, column=0, sticky='e')
+type_var = tk.StringVar(value="Expense")
+type_combobox = ttk.Combobox(frame, textvariable=type_var, values=["Income", "Expense"], state="readonly")
+type_combobox.grid(row=2, column=1)
+
+tk.Label(frame, text="Amount:").grid(row=3, column=0, sticky='e')
+amount_entry = tk.Entry(frame)
+amount_entry.grid(row=3, column=1)
+
+tk.Label(frame, text="Note:").grid(row=4, column=0, sticky='e')
+note_entry = tk.Entry(frame)
+note_entry.grid(row=4, column=1)
+
+tk.Button(frame, text="Add Transaction", command=add_transaction, bg="green", fg="white").grid(row=5, column=0, pady=10)
+tk.Button(frame, text="View Summary", command=show_summary, bg="blue", fg="white").grid(row=5, column=1, pady=10)
+tk.Button(frame, text="Show Pie Chart", command=show_pie_chart, bg="orange", fg="white").grid(row=6, column=0, columnspan=2)
+
+# ---- Table (Treeview) ----
+tree = ttk.Treeview(root, columns=('Date', 'Category', 'Type', 'Amount', 'Note'), show='headings')
+tree.heading('Date', text='Date')
+tree.heading('Category', text='Category')
+tree.heading('Type', text='Type')
+tree.heading('Amount', text='Amount')
+tree.heading('Note', text='Note')
+tree.pack(pady=20, fill='x')
+
+# Optional scrollbar
+scrollbar = ttk.Scrollbar(root, orient='vertical', command=tree.yview)
+tree.configure(yscroll=scrollbar.set)
+scrollbar.pack(side='right', fill='y')
+
+load_transactions()
+
+root.mainloop()
