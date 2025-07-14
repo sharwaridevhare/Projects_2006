@@ -12,3 +12,7 @@ This is a simple GUI-based random password generator built using Python’s tkin
 
 Python Voice Assistant
 This is a basic Python voice assistant that records your speech, converts it to text using Google's Speech Recognition API, and responds using text-to-speech with gTTS. It can recognize simple commands like asking for the time or the assistant’s name. The assistant records audio, processes it, and responds verbally. Built with sounddevice, speech_recognition, and playsound, it's a great beginner project for learning speech recognition, audio handling, and voice interaction in Python.
+
+Finance Tracker with GUI
+This is a Python-based desktop application developed to help users manage their personal finances in a simple and effective way. It allows users to add daily income and expense transactions, which are stored in a CSV file and displayed in a user-friendly table. The application is built using the Tkinter library for the graphical interface, while Pandas and Matplotlib are used for data handling and visualization. Users can view a summary of their total income, total expenses, and the remaining balance, as well as a pie chart that visually compares income and expenses. The program also automatically creates the required data file (data.csv) on the first run, making it easy to use without any prior setup. This project was created by a first-year AI and Data Science engineering student as part of a hands-on learning experience in Python, focusing on GUI development, file handling, and basic data analysis.
+
